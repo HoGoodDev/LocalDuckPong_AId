@@ -3,7 +3,6 @@ import random
 import time
 from copy import deepcopy
 
-
 COURT = {
     "width": 20,
     "height": 8,
@@ -15,38 +14,55 @@ COURT = {
 
 BALL_RADIUS = 0.45
 WIN_SCORE = 5
+BASE_BALL_SPEED = 10
 
 
 def clamp(value, min_value, max_value):
     return max(min_value, min(max_value, value))
 
 
-def build_duck_stats(duck):
-    attrs = duck.get("stats", {}) if duck else {}
-
-    focus = Number(attrs.get("focus", 5))
-    strength = Number(attrs.get("strength", 5))
-    health = Number(attrs.get("health", 5))
-    kindness = Number(attrs.get("kindness", 5))
-    intelligence = Number(attrs.get("intelligence", 5))
-
-    return {
-        "speed": 4 + kindness * 0.45,
-        "hitSpeed": 7 + strength * 0.7,
-        "staminaMax": intelligence * 20,
-        "stamina": intelligence * 20,
-        "tireRate": max(3.5, 13 - health),
-        "recoverRate": 5 + health * 0.6,
-        "kindness": kindness,
-        "shieldRadius": 0.6 + focus * 0.15,
-    }
-
-
-def Number(value):
+def to_number(value, default=5.0):
     try:
         return float(value)
     except Exception:
-        return 5.0
+        return float(default)
+
+
+def default_stats():
+    return {
+        "speed": 6.0,
+        "hitSpeed": BASE_BALL_SPEED,
+        "staminaMax": 100.0,
+        "stamina": 100.0,
+        "tireRate": 8.0,
+        "recoverRate": 10.0,
+        "kindness": 5.0,
+        "shieldRadius": 1.5,
+    }
+
+
+def build_duck_stats(duck):
+    # Supports either duck["stats"] or top-level values if needed
+    attrs = duck.get("stats", duck) if duck else {}
+
+    focus = to_number(attrs.get("focus", 5))
+    strength = to_number(attrs.get("strength", 5))
+    health = to_number(attrs.get("health", 5))
+    kindness = to_number(attrs.get("kindness", 5))
+    intelligence = to_number(attrs.get("intelligence", 5))
+
+    stamina_max = intelligence * 20.0
+
+    return {
+        "speed": 4.0 + kindness * 0.45,
+        "hitSpeed": BASE_BALL_SPEED - 3 + (strength * 1.5),
+        "staminaMax": stamina_max,
+        "stamina": stamina_max,
+        "tireRate": max(3.5, 13.0 - health),
+        "recoverRate": 5.0 + health * 0.6,
+        "kindness": kindness,
+        "shieldRadius": 0.6 + focus * 0.15,
+    }
 
 
 def make_player(name, side, z):
@@ -60,16 +76,7 @@ def make_player(name, side, z):
         "moveDir": 0,
         "score": 0,
         "chaseTimer": 0.0,
-        "stats": {
-            "speed": 6,
-            "hitSpeed": 10,
-            "staminaMax": 100,
-            "stamina": 100,
-            "tireRate": 8,
-            "recoverRate": 10,
-            "kindness": 5,
-            "shieldRadius": 1.35,
-        },
+        "stats": default_stats(),
     }
 
 
@@ -80,7 +87,7 @@ def make_ball():
         "z": 0.0,
         "vx": random.uniform(-3, 3),
         "vy": 0.0,
-        "vz": 8 if random.random() < 0.5 else -8,
+        "vz": 8.0 if random.random() < 0.5 else -8.0,
         "radius": BALL_RADIUS,
         "lastHitBy": None,
     }
@@ -92,7 +99,9 @@ class GameState:
             "p1": make_player("Player 1", "p1", COURT["player_z1"]),
             "p2": make_player("Player 2", "p2", COURT["player_z2"]),
         }
+
         self.ball = make_ball()
+
         # waiting_for_ducks | waiting_serve | playing | gameover
         self.phase = "waiting_for_ducks"
         self.lastEventMessage = "Place both ducks on the portals."
@@ -112,8 +121,7 @@ class GameState:
             "players": {
                 "p1": {
                     "name": self.players["p1"]["name"],
-                    "duckId": self.players["p1"]["duck_id"],
-                    "duck": self.players["p1"]["duck"],
+                    "duck": deepcopy(self.players["p1"]["duck"]),
                     "x": self.players["p1"]["x"],
                     "z": self.players["p1"]["z"],
                     "score": self.players["p1"]["score"],
@@ -124,8 +132,7 @@ class GameState:
                 },
                 "p2": {
                     "name": self.players["p2"]["name"],
-                    "duckId": self.players["p2"]["duck_id"],
-                    "duck": self.players["p2"]["duck"],
+                    "duck": deepcopy(self.players["p2"]["duck"]),
                     "x": self.players["p2"]["x"],
                     "z": self.players["p2"]["z"],
                     "score": self.players["p2"]["score"],
@@ -135,29 +142,40 @@ class GameState:
                     "chaseTimer": self.players["p2"]["chaseTimer"],
                 },
             },
-            "ball": deepcopy(self.ball),
+            "ball": {
+                "x": self.ball["x"],
+                "y": self.ball["y"],
+                "z": self.ball["z"],
+                "radius": self.ball["radius"],
+                "lastHitBy": self.ball["lastHitBy"],
+            },
         }
 
     def apply_reader_state(self, reader_state):
         changed = False
 
         for side in ("p1", "p2"):
-            incoming_duck = reader_state[side]["duck"]
-            incoming_id = reader_state[side]["duck_id"]
-
+            incoming_duck = reader_state[side].get("duck")
+            incoming_id = reader_state[side].get("duck_id")
             current_id = self.players[side]["duck_id"]
 
             if str(current_id) != str(incoming_id):
                 changed = True
+
                 self.players[side]["duck_id"] = incoming_id
                 self.players[side]["duck"] = incoming_duck
+
                 if incoming_duck:
+                    self.players[side]["name"] = incoming_duck.get(
+                        "name",
+                        "Player 1" if side == "p1" else "Player 2",
+                    )
                     self.players[side]["stats"] = build_duck_stats(
                         incoming_duck)
                     self.players[side]["stats"]["stamina"] = self.players[side]["stats"]["staminaMax"]
                 else:
-                    self.players[side]["stats"] = make_player("tmp", side, 0)[
-                        "stats"]
+                    self.players[side]["name"] = "Player 1" if side == "p1" else "Player 2"
+                    self.players[side]["stats"] = default_stats()
 
         p1_present = self.players["p1"]["duck"] is not None
         p2_present = self.players["p2"]["duck"] is not None
@@ -169,8 +187,11 @@ class GameState:
             else:
                 self.lastEventMessage = "Place both ducks on the portals."
 
-        elif (not p1_present or not p2_present) and self.phase in ("waiting_serve", "playing"):
+        elif (not p1_present or not p2_present) and self.phase in ("waiting_serve", "playing", "gameover"):
             self.phase = "waiting_for_ducks"
+            self.winner = None
+            self.serveWaitingFor = None
+            self.serveToward = None
             self.lastEventMessage = "A duck was removed. Place both ducks on the portals."
             self.reset_positions()
             self.reset_ball("p1")
@@ -184,8 +205,10 @@ class GameState:
     def start_match(self):
         self.phase = "waiting_serve"
         self.winner = None
+
         self.players["p1"]["score"] = 0
         self.players["p2"]["score"] = 0
+
         self.players["p1"]["stats"]["stamina"] = self.players["p1"]["stats"]["staminaMax"]
         self.players["p2"]["stats"]["stamina"] = self.players["p2"]["stats"]["staminaMax"]
 
@@ -195,12 +218,12 @@ class GameState:
 
         self.reset_positions()
         self.reset_ball(self.serveToward)
-
         self.lastEventMessage = f"{self.serveWaitingFor.upper()} press serve key to begin."
 
     def try_serve(self, side):
         if self.phase != "waiting_serve":
             return False
+
         if side != self.serveWaitingFor:
             return False
 
@@ -211,6 +234,8 @@ class GameState:
     def reset_positions(self):
         self.players["p1"]["x"] = 0.0
         self.players["p2"]["x"] = 0.0
+        self.players["p1"]["z"] = COURT["player_z1"]
+        self.players["p2"]["z"] = COURT["player_z2"]
         self.players["p1"]["moveDir"] = 0
         self.players["p2"]["moveDir"] = 0
         self.players["p1"]["chaseTimer"] = 0.0
@@ -222,12 +247,14 @@ class GameState:
         self.ball["z"] = 0.0
         self.ball["vx"] = random.uniform(-3, 3)
         self.ball["vy"] = 0.0
-        self.ball["vz"] = -8 if toward_side == "p1" else 8
+        self.ball["vz"] = - \
+            BASE_BALL_SPEED if toward_side == "p1" else BASE_BALL_SPEED
         self.ball["lastHitBy"] = None
 
     def get_effective_speed(self, player):
         ratio = player["stats"]["stamina"] / \
-            max(1, player["stats"]["staminaMax"])
+            max(1.0, player["stats"]["staminaMax"])
+
         if ratio > 0.5:
             return player["stats"]["speed"]
         if ratio > 0.2:
@@ -237,6 +264,18 @@ class GameState:
     def update_player(self, player, dt):
         if player["chaseTimer"] > 0:
             player["chaseTimer"] = max(0.0, player["chaseTimer"] - dt)
+
+        # Let chase visually move the player forward a little
+        if player["chaseTimer"] > 0:
+            if player["side"] == "p1":
+                player["z"] = -8.0
+            else:
+                player["z"] = 8.0
+        else:
+            if player["side"] == "p1":
+                player["z"] = COURT["player_z1"]
+            else:
+                player["z"] = COURT["player_z2"]
 
         speed = self.get_effective_speed(player)
         player["x"] += player["moveDir"] * speed * dt
@@ -257,7 +296,7 @@ class GameState:
 
     def ball_hits_player(self, ball, player):
         shield_radius = player["stats"]["shieldRadius"]
-        shield_offset_z = 1.2 if player["side"] == "p1" else -1.2
+        shield_offset_z = 1.2  # if player["side"] == "p1" else -1.2
         shield_center_y = 1.8
 
         shield_x = player["x"]
@@ -267,12 +306,12 @@ class GameState:
         dx = ball["x"] - shield_x
         dy = ball["y"] - shield_y
         dz = ball["z"] - shield_z
-
         distance = math.sqrt(dx * dx + dy * dy + dz * dz)
+
         return distance <= shield_radius + ball["radius"]
 
     def reflect_ball(self, ball, player):
-        shield_offset_z = 1.2 if player["side"] == "p1" else -1.2
+        shield_offset_z = 1.2  # if player["side"] == "p1" else -1.2
         shield_center_y = 1.8
 
         shield_x = player["x"]
@@ -288,9 +327,9 @@ class GameState:
         nz = dz / length
 
         speed = player["stats"]["hitSpeed"]
-        forward_z = 1 if player["side"] == "p1" else -1
+        forward_z = 1.0 if player["side"] == "p1" else -1.0
 
-        ball["vx"] = clamp(nx * speed * 0.9, -12, 12)
+        ball["vx"] = clamp(nx * speed * 0.9, -12.0, 12.0)
         ball["vz"] = abs(speed * max(0.65, abs(nz))) * forward_z
         ball["y"] = 2.0
         ball["vy"] = 0.0
@@ -299,12 +338,17 @@ class GameState:
     def maybe_trigger_unkind_chase(self, loser, scorer):
         if loser["stats"]["kindness"] >= 3:
             return False
+
         if random.random() > 0.3:
             return False
 
-        scorer["score"] += 1
-        loser["chaseTimer"] = 1.5
-        self.lastEventMessage = f'{loser["duck"].get("name", loser["name"])} got mad and chased the opponent. Penalty point!'
+        # wanted the duck to do some angry thing here, but the penalty just made things seem broken
+        # scorer["score"] += 1
+        # loser["chaseTimer"] = 1.5
+
+        loser_name = loser["duck"].get(
+            "name", loser["name"]) if loser["duck"] else loser["name"]
+        self.lastEventMessage = f"{loser_name} got mad and chased the opponent!"
         return True
 
     def score_point(self, scorer_side):
@@ -314,24 +358,25 @@ class GameState:
 
         scorer["score"] += 1
         self.lastScorer = scorer_side
-        self.lastEventMessage = f'{scorer["duck"].get("name", scorer["name"])} scored!'
+        self.lastEventMessage = f'{scorer["name"]} scored!'
 
         self.maybe_trigger_unkind_chase(loser, scorer)
 
         if self.players["p1"]["score"] >= WIN_SCORE or self.players["p2"]["score"] >= WIN_SCORE:
             self.phase = "gameover"
             self.winner = "p1" if self.players["p1"]["score"] >= WIN_SCORE else "p2"
-            winner_name = self.players[self.winner]["duck"].get(
-                "name", self.players[self.winner]["name"])
+            winner_name = self.players[self.winner]["name"]
             self.lastEventMessage = f"{winner_name} wins!"
             return True
 
         self.phase = "waiting_serve"
         self.serveToward = scorer_side
         self.serveWaitingFor = loser_side
+
         self.reset_positions()
         self.reset_ball(self.serveToward)
-        loser_name = loser["duck"].get("name", loser["name"])
+
+        loser_name = loser["name"]
         self.lastEventMessage = f"{loser_name}: press serve key."
         return True
 
@@ -371,10 +416,17 @@ class GameState:
         dt = min(now - self.lastTick, 0.05)
         self.lastTick = now
 
-        if self.phase != "playing":
+        # No movement at all until both ducks are present
+        if self.phase == "waiting_for_ducks":
             return False
 
-        self.update_player(self.players["p1"], dt)
-        self.update_player(self.players["p2"], dt)
+        # Allow duck movement before serve and during live play
+        if self.phase in ("waiting_serve", "playing"):
+            self.update_player(self.players["p1"], dt)
+            self.update_player(self.players["p2"], dt)
 
-        return self.update_ball(dt)
+        # Ball only moves during live play
+        if self.phase == "playing":
+            return self.update_ball(dt)
+
+        return False

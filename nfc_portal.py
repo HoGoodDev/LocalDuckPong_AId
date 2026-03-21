@@ -3,24 +3,6 @@ nfc_portal.py
 
 Reusable NFC portal module for PC/SC CCID readers (pyscard),
 with optional keyboard-driven simulation mode.
-
-Features:
-- Polls all connected PC/SC readers
-- Reads UID (Get Data)
-- Reads Type 2 tag memory pages (NTAG21x / Ultralight style) via FF B0
-- Extracts NDEF message TLV
-- Parses NDEF records:
-    - URL (Well-known 'U')
-    - TEXT (Well-known 'T')
-    - DATA(MIME)  (TNF_MIME_MEDIA)
-    - DATA(EXTERNAL) (TNF_EXTERNAL_TYPE)
-    - UNKNOWN fallback
-- Detects tag present / removed / changed
-- Emits callbacks with per-reader PortalState
-- Optional simulation mode with keyboard controls
-
-Install:
-    pip install pyscard
 """
 
 from __future__ import annotations
@@ -90,45 +72,141 @@ URI_PREFIX_TABLE = [
 # Simulation data
 # -----------------------------
 
+def _sim_duck(
+    duck_id: str,
+    name: str,
+    assembler: str,
+    *,
+    head: str,
+    front_left: str,
+    front_right: str,
+    rear_left: str,
+    rear_right: str,
+    derpy: bool = False,
+    focus: int = 5,
+    strength: int = 5,
+    health: int = 5,
+    kindness: int = 5,
+    intelligence: int = 5,
+) -> Dict[str, Any]:
+    return {
+        "_id": duck_id,
+        "assembler": assembler,
+        "name": name,
+        "derpy": derpy,
+        "body": {
+            "head": head,
+            "frontLeft": front_left,
+            "frontRight": front_right,
+            "rearLeft": rear_left,
+            "rearRight": rear_right,
+        },
+        "stats": {
+            "focus": focus,
+            "strength": strength,
+            "health": health,
+            "kindness": kindness,
+            "intelligence": intelligence,
+        },
+    }
+
+
+SIM_DUCK_OBJECTS: Dict[str, Dict[str, Any]] = {
+    "NOODLE": _sim_duck(
+        "69a8ea5053e250fdaf139d59",
+        "Noodle",
+        "Emma Hayes",
+        head="yellow",
+        front_left="yellow",
+        front_right="orange",
+        rear_left="yellow",
+        rear_right="orange",
+        focus=7,
+        strength=6,
+        health=5,
+        kindness=8,
+        intelligence=6,
+    ),
+    "NIMBUS": _sim_duck(
+        "69a8ea5053e250fdaf139d5a",
+        "Nimbus",
+        "Isaac Turner",
+        head="white",
+        front_left="lightblue",
+        front_right="white",
+        rear_left="lightblue",
+        rear_right="white",
+        focus=9,
+        strength=5,
+        health=6,
+        kindness=7,
+        intelligence=8,
+    ),
+    "CRICKET": _sim_duck(
+        "69a8ea5053e250fdaf139d5b",
+        "Cricket",
+        "Tyler Brooks",
+        head="green",
+        front_left="green",
+        front_right="yellow",
+        rear_left="green",
+        rear_right="yellow",
+        focus=6,
+        strength=7,
+        health=8,
+        kindness=4,
+        intelligence=5,
+    ),
+    "WAFFLES": _sim_duck(
+        "69a8ea5053e250fdaf139d5c",
+        "Waffles",
+        "Grace Lin",
+        head="brown",
+        front_left="orange",
+        front_right="yellow",
+        rear_left="brown",
+        rear_right="yellow",
+        focus=4,
+        strength=8,
+        health=7,
+        kindness=6,
+        intelligence=4,
+    ),
+    "BISCUIT": _sim_duck(
+        "69a8ea5053e250fdaf139d5d",
+        "Biscuit",
+        "Daniel Ortiz",
+        head="yellow",
+        front_left="yellow",
+        front_right="yellow",
+        rear_left="yellow",
+        rear_right="yellow",
+        derpy=True,
+        focus=5,
+        strength=4,
+        health=6,
+        kindness=2,
+        intelligence=5,
+    ),
+}
+
+
+def _build_sim_records_for_duck(sim_duck: Dict[str, Any]) -> List[Dict[str, Any]]:
+    duck_id = sim_duck["_id"]
+    return [
+        {"type": "url", "value": f"https://duckland-production.up.railway.app/ducks/{duck_id}"},
+        {"type": "text", "lang": "en", "value": duck_id},
+        {"type": "json", "value": copy.deepcopy(sim_duck)},
+    ]
+
+
 SIM_DUCKS: Dict[str, List[Dict[str, Any]]] = {
-    "NOODLE": [
-        {"type": "url", "value": "https://duckland-production.up.railway.app/ducks/69a8ea5053e250fdaf139d59"},
-        {"type": "text", "lang": "en", "value": "69a8ea5053e250fdaf139d59"},
-        {"type": "json", "value": {"_id": "69a8ea5053e250fdaf139d59",
-                                   "assembler": "Emma Hayes", "name": "Noodle"}}
-    ],
-    "NIMBUS": [
-        {"type": "url", "value": "https://duckland-production.up.railway.app/ducks/69a8ea5053e250fdaf139d5a"},
-        {"type": "text", "lang": "en", "value": "69a8ea5053e250fdaf139d5a"},
-        {"type": "json", "value": {"_id": "69a8ea5053e250fdaf139d5a",
-                                   "assembler": "Isaac Turner", "name": "Nimbus"}}
-    ],
-    "CRICKET": [
-        {"type": "url", "value": "https://duckland-production.up.railway.app/ducks/69a8ea5053e250fdaf139d5b"},
-        {"type": "text", "lang": "en", "value": "69a8ea5053e250fdaf139d5b"},
-        {"type": "json", "value": {"_id": "69a8ea5053e250fdaf139d5b",
-                                   "assembler": "Tyler Brooks", "name": "Cricket"}}
-    ],
-    "WAFFLES": [
-        {"type": "url", "value": "https://duckland-production.up.railway.app/ducks/69a8ea5053e250fdaf139d5c"},
-        {"type": "text", "lang": "en", "value": "69a8ea5053e250fdaf139d5c"},
-        {"type": "json", "value": {"_id": "69a8ea5053e250fdaf139d5c",
-                                   "assembler": "Grace Lin", "name": "Waffles"}}
-    ],
-    "BISCUIT": [
-        {"type": "url", "value": "https://duckland-production.up.railway.app/ducks/69a8ea5053e250fdaf139d5d"},
-        {"type": "text", "lang": "en", "value": "69a8ea5053e250fdaf139d5d"},
-        {"type": "json", "value": {"_id": "69a8ea5053e250fdaf139d5d",
-                                   "assembler": "Daniel Ortiz", "name": "Biscuit"}}
-    ],
+    key: _build_sim_records_for_duck(value)
+    for key, value in SIM_DUCK_OBJECTS.items()
 }
 
 
 def _build_sim_ndef_records(sim_records: List[Dict[str, Any]]) -> Tuple["NdefRecord", ...]:
-    """
-    Convert simple simulation dictionaries into NdefRecord objects so the rest
-    of the app can use the exact same PortalState helpers.
-    """
     out: List[NdefRecord] = []
 
     for record in sim_records:
@@ -196,7 +274,8 @@ class SimulatedPortalReader:
 
         self.uid_hex = f"SIM-{self.reader_name}-{duck_id}"
         self.ndef_records = _build_sim_ndef_records(
-            copy.deepcopy(SIM_DUCKS[duck_id]))
+            copy.deepcopy(SIM_DUCKS[duck_id])
+        )
 
     def clear(self) -> None:
         self.uid_hex = None
@@ -283,7 +362,6 @@ class PortalState:
     def get_id(self) -> str:
         obj = self.first_json()
 
-        # preferred simulator / real tag schema
         if isinstance(obj, dict):
             if isinstance(obj.get("duckId"), str) and obj["duckId"].strip():
                 return obj["duckId"].strip()
@@ -708,19 +786,19 @@ class NfcPortalManager:
             """
 ========== DUCK PORTAL SIMULATOR ==========
 LEFT PORTAL
-  1 = PIXEL
-  2 = GLOW
-  3 = SPARK
-  4 = BUBBLE
-  5 = DERPY
+  1 = NOODLE
+  2 = NIMBUS
+  3 = CRICKET
+  4 = WAFFLES
+  5 = BISCUIT
   c = clear left
 
 RIGHT PORTAL
-  7 = PIXEL
-  8 = GLOW
-  9 = SPARK
-  0 = BUBBLE
-  - = DERPY
+  7 = NOODLE
+  8 = NIMBUS
+  9 = CRICKET
+  0 = WAFFLES
+  - = BISCUIT
   m = clear right
 
 GENERAL
@@ -736,9 +814,9 @@ GENERAL
 
         print("\n--- Current Portal States ---")
         print(
-            f"LEFT  : uid={left.uid_hex}, duck_id={left.get_id()}, records={len(left.ndef_records)}")
+            f"LEFT  : uid={left.uid_hex}, duck_id={left.get_id()}, name={left.get_name()}, records={len(left.ndef_records)}")
         print(
-            f"RIGHT : uid={right.uid_hex}, duck_id={right.get_id()}, records={len(right.ndef_records)}")
+            f"RIGHT : uid={right.uid_hex}, duck_id={right.get_id()}, name={right.get_name()}, records={len(right.ndef_records)}")
         print("-----------------------------\n")
 
     def handle_simulator_command(self, command: str) -> bool:

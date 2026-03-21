@@ -5,6 +5,11 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Local Duck Pong!</title>
         <link rel="stylesheet" href="/static/style.css" />
+        <link
+            rel="shortcut icon"
+            href="/static/images/DuckIcon64.png"
+            type="image/x-icon"
+        />
     </head>
     <body>
         <div class="app">
@@ -55,10 +60,21 @@
                     <div>P2 Move: ← / →</div>
                     <div>P2 Serve: Enter</div>
                 </div>
+                <button id="resetBtn" class="btn btn-danger">Reset Game</button>
             </div>
 
             <div class="main">
                 <canvas id="gameCanvas"></canvas>
+            </div>
+            <div id="winOverlay" class="win-overlay hidden">
+                <div class="win-card">
+                    <h1 id="winTitle">Winner!</h1>
+                    <p id="winSubtitle">Ready for another round?</p>
+
+                    <button id="playAgainBtn" class="btn btn-primary mt-3">
+                        Play Again
+                    </button>
+                </div>
             </div>
         </div>
 

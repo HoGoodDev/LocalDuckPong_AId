@@ -13,6 +13,7 @@ body {
     display: grid;
     grid-template-columns: 320px 1fr;
     min-height: 100vh;
+    position: relative;
 }
 
 .sidebar {
@@ -83,4 +84,90 @@ body {
         height: 60vh;
         min-height: 60vh;
     }
+}
+
+.win-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 20;
+}
+
+.win-overlay.hidden {
+    display: none;
+}
+
+.win-card {
+    background: rgba(20, 24, 30, 0.95);
+    color: white;
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    min-width: 320px;
+}
+
+.win-card h1 {
+    margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+}
+
+.win-card p {
+    margin: 0;
+    font-size: 1rem;
+    opacity: 0.9;
+}
+
+.win-card button {
+    font-size: 1.1rem;
+    padding: 0.6rem 1.4rem;
+}
+/* Sidebar Play Again Button */
+#resetBtn,
+#playAgainBtn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 14px;
+
+    background: linear-gradient(135deg, #4cafef, #2b7cff);
+    color: white;
+
+    border: none;
+    border-radius: 10px;
+
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+
+    cursor: pointer;
+
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    background: linear-gradient(135deg, #1e88e5, #1565c0);
+}
+
+/* Hover */
+#resetBtn:hover,
+#playAgainBtn:hover {
+    background: linear-gradient(135deg, #5fb7ff, #3a8cff);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* Click */
+#resetBtn:active,
+#playAgainBtn:active {
+    transform: translateY(0px) scale(0.97);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Disabled (optional if you use it) */
+#playAgainBtn:disabled {
+    background: #666;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
 }
