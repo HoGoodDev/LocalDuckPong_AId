@@ -50,8 +50,29 @@ class SplitScene {
         this.modelBaseUrl = modelBaseUrl;
         this.currentState = null;
 
+        // this.scene = new THREE.Scene();
+        // this.scene.background = new THREE.Color(0x101418);
         this.scene = new THREE.Scene();
-        this.scene.background = new THREE.Color(0x101418);
+
+        // Gradient background (correct way)
+        const canvas = document.createElement("canvas");
+        canvas.width = 16;
+        canvas.height = 256;
+
+        const ctx = canvas.getContext("2d");
+        const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+
+        gradient.addColorStop(0, "#0f172a");
+        gradient.addColorStop(1, "#1e3a8a");
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        this.scene.background = texture;
+
+        // Optional fog (adds depth)
+        this.scene.fog = new THREE.Fog(0x0f172a, 30, 80);
 
         this.renderer = new THREE.WebGLRenderer({
             canvas: this.canvas,
