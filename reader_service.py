@@ -9,10 +9,11 @@ from nfc_portal import NfcPortalManager, run_simulator_input_loop, PortalState
 
 
 DUCK_API_BASE = "https://api.ducks.ects-cmp.com/ducks"
+DEFAULT_SIMULATION_MODE = False
 
 
 class ReaderService:
-    def __init__(self, simulation_mode: bool = False):
+    def __init__(self, simulation_mode: bool = DEFAULT_SIMULATION_MODE):
         self.simulation_mode = simulation_mode
 
         self.manager = NfcPortalManager(simulation_mode=simulation_mode)
