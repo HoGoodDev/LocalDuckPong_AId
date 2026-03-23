@@ -1,94 +1,120 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Local Duck Pong!</title>
-        <link rel="stylesheet" href="/static/style.css" />
-        <link
-            rel="shortcut icon"
-            href="/static/images/DuckIcon64.png"
-            type="image/x-icon"
-        />
-    </head>
-    <body>
-        <div class="app">
-            <div class="sidebar">
-                <h1>Duck Pong!</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Duck Pong!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link
+      rel="shortcut icon"
+      href="/static/images/DuckIcon64.png"
+      type="image/x-icon"
+    />
+  </head>
+  <body>
+    <div class="app">
+      <div class="sidebar">
+        <h1>DUCK PONG</h1>
 
-                <div class="card">
-                    <h2>Reader Status</h2>
-                    <div id="p1Reader">P1: waiting</div>
-                    <div id="p2Reader">P2: waiting</div>
-                </div>
-
-                <div class="card">
-                    <h2>Score</h2>
-                    <div id="scoreLine">0 - 0</div>
-                    <div id="duckNames">Waiting for ducks...</div>
-                </div>
-
-                <div class="card">
-                    <h2>Stamina</h2>
-                    <div class="label-row">
-                        <span>P1</span>
-                        <span id="p1StaminaText">0 / 0</span>
-                    </div>
-                    <div class="bar">
-                        <div id="p1StaminaBar" class="fill"></div>
-                    </div>
-
-                    <div class="label-row">
-                        <span>P2</span>
-                        <span id="p2StaminaText">0 / 0</span>
-                    </div>
-                    <div class="bar">
-                        <div id="p2StaminaBar" class="fill"></div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h2>Message</h2>
-                    <div id="messageBox">Place both ducks on the portals.</div>
-                </div>
-
-                <div class="card">
-                    <h2>Controls</h2>
-                    <div>P1 Move: A / D</div>
-                    <div>P1 Serve: Space</div>
-                    <br />
-                    <div>P2 Move: ← / →</div>
-                    <div>P2 Serve: Enter</div>
-                </div>
-                <button id="resetBtn" class="btn btn-danger">Reset Game</button>
-            </div>
-
-            <div class="main">
-                <canvas id="gameCanvas"></canvas>
-            </div>
-            <div id="winOverlay" class="win-overlay hidden">
-                <div class="win-card">
-                    <h1 id="winTitle">Winner!</h1>
-                    <p id="winSubtitle">Ready for another round?</p>
-
-                    <button id="playAgainBtn" class="btn btn-primary mt-3">
-                        Play Again
-                    </button>
-                </div>
-            </div>
+        <div class="card">
+          <h2>Readers</h2>
+          <div class="reader-row">
+            <span class="reader-dot" id="p1Dot"></span>
+            <span id="p1Reader">P1: waiting for duck</span>
+          </div>
+          <div class="reader-row">
+            <span class="reader-dot" id="p2Dot"></span>
+            <span id="p2Reader">P2: waiting for duck</span>
+          </div>
         </div>
 
-        <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+        <div class="card">
+          <h2>Score</h2>
+          <div id="scoreLine">0 - 0</div>
+          <div id="duckNames">Waiting for ducks...</div>
+        </div>
 
-        <script type="importmap">
-            {
-                "imports": {
-                    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-                }
-            }
-        </script>
+        <div class="card">
+          <h2>Stamina</h2>
+          <div class="label-row">
+            <span class="player-tag p1">P1</span>
+            <span class="stamina-val" id="p1StaminaText">0 / 0</span>
+          </div>
+          <div class="bar">
+            <div id="p1StaminaBar" class="fill"></div>
+          </div>
+          <div class="label-row">
+            <span class="player-tag p2">P2</span>
+            <span class="stamina-val" id="p2StaminaText">0 / 0</span>
+          </div>
+          <div class="bar">
+            <div id="p2StaminaBar" class="fill"></div>
+          </div>
+        </div>
 
-        <script type="module" src="/static/js/main.js"></script>
-    </body>
+        <div class="card">
+          <h2>Event</h2>
+          <div id="messageBox">Place both ducks on the portals.</div>
+        </div>
+
+        <div class="card">
+          <h2>Controls</h2>
+          <div class="controls-grid">
+            <div class="control-col p1">
+              <h3>Player 1</h3>
+              <div class="key-row"><kbd>A</kbd><kbd>D</kbd> Move</div>
+              <div class="key-row"><kbd>Space</kbd> Serve</div>
+              <div class="key-row">
+                <kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd><kbd>T</kbd>
+              </div>
+            </div>
+            <div class="control-col p2">
+              <h3>Player 2</h3>
+              <div class="key-row"><kbd>←</kbd><kbd>→</kbd> Move</div>
+              <div class="key-row"><kbd>Enter</kbd> Serve</div>
+              <div class="key-row">
+                <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd>
+                <span style="font-size: 0.65rem">NUM</span>
+              </div>
+            </div>
+          </div>
+          <hr class="controls-divider" />
+          <div class="emoji-row">😂 😤 🎉 😢 👍</div>
+        </div>
+
+        <button id="resetBtn">Reset Game</button>
+      </div>
+
+      <div class="main">
+        <canvas id="gameCanvas"></canvas>
+      </div>
+
+      <div id="winOverlay" class="win-overlay hidden">
+        <div class="win-card">
+          <h1 id="winTitle">Winner!</h1>
+          <p id="winSubtitle">Ready for another round?</p>
+          <button id="playAgainBtn">Play Again</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <script type="module" src="/static/js/main.js"></script>
+  </body>
 </html>
